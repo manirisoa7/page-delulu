@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farewell Constellation</title>
+<style>
+  :root{
+    --bg-top: #0b0e23;
+    --bg-bottom: #05060f;
+    --star: #ffffff;
+    --star-glow: #a8c5ff;
+    --gold: #f5d98b;
+    --text-soft: rgba(255,255,255,0.55);
+    --text-strong: rgba(255,255,255,0.9);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background: radial-gradient(ellipse at 50% 30%, var(--bg-top), var(--bg-bottom));
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  #sky{
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+
+  /* --- Étoiles de fond, ambiance --- */
+  .bg-star{
+    position: absolute;
+    background: var(--star);
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: twinkle 3.5s ease-in-out infinite;
+  }
+  @keyframes twinkle{
+    0%, 100%{ opacity: 0.15; }
+    50%{ opacity: 0.85; }
+  }
+
+  /* --- Constellation --- */
+  #constellation-lines{
+    position: absolute;
+    top:0; left:0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  #constellation-lines line{
+    stroke: var(--star-glow);
+    stroke-width: 1;
+    opacity: 0.35;
+    transition: opacity 2s ease;
+  }
+
+  .c-star{
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--star);
+    border-radius: 50%;
+    box-shadow: 0 0 6px 1px var(--star-glow), 0 0 2px 1px #fff;
+    transform: translate(-50%, -50%);
+    transition: left 3.2s cubic-bezier(.2,.7,.2,1),
+                top 3.2s cubic-bezier(.2,.7,.2,1),
+                width 3.2s ease, height 3.2s ease,
+                opacity 3.2s ease,
+                box-shadow 3.2s ease;
+  }
+  .c-star.dispersed{
+    width: 2px;
+    height: 2px;
+    box-shadow: 0 0 3px 1px var(--star-glow);
+    opacity: 0.55;
+  }
+
+  /* --- Texte --- */
+  .top-caption{
+    position: absolute;
+    top: 8vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: var(--text-soft);
+    font-size: clamp(11px, 1.8vh, 14px);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-weight: 300;
+    z-index: 5;
+  }
+
+  #farewell-msg{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(80vw, 460px);
+    text-align: center;
+    color: var(--text-strong);
+    font-size: clamp(14px, 2.4vh, 18px);
+    line-height: 1.7;
+    font-weight: 300;
+    opacity: 0;
+    transition: opacity 2.5s ease;
+    z-index: 6;
+    pointer-events: none;
+  }
+  #farewell-msg.show{ opacity: 1; }
+  #farewell-msg .signature{
+    display:block;
+    margin-top: 14px;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    font-size: clamp(11px, 1.8vh, 13px);
+    text-transform: uppercase;
+  }
+
+  #release-btn{
+    position: absolute;
+    bottom: 7vh;
+    left: 50%;
+    transform: translateX(-50%);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--text-strong);
+    padding: 12px 30px;
+    font-size: clamp(11px, 1.8vh, 13px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 300;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: opacity 1.5s ease, background 0.3s ease, border-color 0.3s ease;
+    z-index: 6;
+  }
+  #release-btn:hover{
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.55);
+  }
+  #release-btn.hidden{
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="sky">
+  <div class="top-caption">A memory from 2019</div>
+
+  <svg id="constellation-lines"></svg>
+
+  <div id="farewell-msg">
+    RG, I am officially decrushing on you.<br>
+    Thank you for what it was.<br>
+    Some memories don't disappear, they just soften with time.<br>
+    2019 will stay a star among so many others, somewhere in the sky.
+    <span class="signature">✨ the page turns, gently ✨</span>
+  </div>
+
+  <button id="release-btn">Let it go</button>
+</div>
+
+<script>
+(function(){
+  const sky = document.getElementById('sky');
+  const linesSvg = document.getElementById('constellation-lines');
+  const farewellMsg = document.getElementById('farewell-msg');
+  const releaseBtn = document.getElementById('release-btn');
+
+  // ---------- Background stars (ambience) ----------
+  const BG_STAR_COUNT = 110;
+  for(let i=0; i<BG_STAR_COUNT; i++){
+    const s = document.createElement('div');
+    s.className = 'bg-star';
+    const size = Math.random() * 1.6 + 0.6;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = (Math.random() * 100) + 'vw';
+    s.style.top = (Math.random() * 100) + 'vh';
+    s.style.animationDelay = (Math.random() * 3.5) + 's';
+    sky.insertBefore(s, linesSvg);
+  }
+
+  // ---------- Génération de la forme "RG · 2019" via canvas ----------
+  const canvas = document.createElement('canvas');
+  const cw = 560, ch = 220;
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = 'bold 130px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('RG', cw/2, ch*0.4);
+
+  ctx.font = 'bold 54px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('2019', cw/2, ch*0.82);
+
+  const imgData = ctx.getImageData(0, 0, cw, ch).data;
+  const sampled = [];
+  const STEP = 6;
+  for(let y = 0; y < ch; y += STEP){
+    for(let x = 0; x < cw; x += STEP){
+      const idx = (y * cw + x) * 4;
+      if(imgData[idx] > 120){ // pixel allumé (blanc)
+        sampled.push({ x, y });
+      }
+    }
+  }
+
+  // Limiter le nombre de points pour rester lisible et léger
+  const MAX_POINTS = 150;
+  let points = sampled;
+  if(points.length > MAX_POINTS){
+    const ratio = points.length / MAX_POINTS;
+    const reduced = [];
+    for(let i = 0; i < MAX_POINTS; i++){
+      reduced.push(points[Math.floor(i * ratio)]);
+    }
+    points = reduced;
+  }
+
+  // ---------- Mapping vers l'écran ----------
+  function computeLayout(){
+    const containerW = Math.min(window.innerWidth * 0.78, 520);
+    const containerH = containerW * (ch / cw);
+    const containerLeft = (window.innerWidth - containerW) / 2;
+    const containerTop = window.innerHeight * 0.28;
+    return { containerW, containerH, containerLeft, containerTop };
+  }
+
+  let layout = computeLayout();
+
+  const screenPoints = points.map(p => ({
+    x: layout.containerLeft + (p.x / cw) * layout.containerW,
+    y: layout.containerTop + (p.y / ch) * layout.containerH
+  }));
+
+  // ---------- Chemin de constellation (plus proche voisin) ----------
+  function buildPath(pts){
+    const visited = new Array(pts.length).fill(false);
+    const order = [0];
+    visited[0] = true;
+    let current = 0;
+    for(let k = 1; k < pts.length; k++){
+      let bestDist = Infinity, bestIdx = -1;
+      for(let j = 0; j < pts.length; j++){
+        if(visited[j]) continue;
+        const dx = pts[j].x - pts[current].x;
+        const dy = pts[j].y - pts[current].y;
+        const d = dx*dx + dy*dy;
+        if(d < bestDist){ bestDist = d; bestIdx = j; }
+      }
+      if(bestIdx === -1) break;
+      visited[bestIdx] = true;
+      order.push(bestIdx);
+      current = bestIdx;
+    }
+    return order;
+  }
+
+  const pathOrder = buildPath(screenPoints);
+
+  // ---------- Création des étoiles DOM ----------
+  const starEls = screenPoints.map((p) => {
+    const el = document.createElement('div');
+    el.className = 'c-star';
+    el.style.left = p.x + 'px';
+    el.style.top = p.y + 'px';
+    sky.insertBefore(el, releaseBtn);
+    return el;
+  });
+
+  // ---------- Création des lignes SVG ----------
+  linesSvg.setAttribute('width', window.innerWidth);
+  linesSvg.setAttribute('height', window.innerHeight);
+  const lineEls = [];
+  for(let i = 0; i < pathOrder.length - 1; i++){
+    const a = screenPoints[pathOrder[i]];
+    const b = screenPoints[pathOrder[i+1]];
+    // éviter de relier des points trop éloignés (saut entre "RG" et "2019")
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if(dist > 70) continue;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', a.x);
+    line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x);
+    line.setAttribute('y2', b.y);
+    linesSvg.appendChild(line);
+    lineEls.push(line);
+  }
+
+  // ---------- Lâcher-prise ----------
+  let released = false;
+  releaseBtn.addEventListener('click', () => {
+    if(released) return;
+    released = true;
+
+    releaseBtn.classList.add('hidden');
+
+    // 1. les lignes s'effacent
+    lineEls.forEach(l => { l.style.opacity = '0'; });
+
+    // 2. les étoiles se dispersent dans tout le ciel, chacune à son rythme
+    starEls.forEach((el, i) => {
+      const margin = 30;
+      const targetX = margin + Math.random() * (window.innerWidth - 2*margin);
+      const targetY = margin + Math.random() * (window.innerHeight - 2*margin);
+      const delay = Math.random() * 600;
+      setTimeout(() => {
+        el.classList.add('dispersed');
+        el.style.left = targetX + 'px';
+        el.style.top = targetY + 'px';
+      }, delay);
+    });
+
+    // 3. le message d'adieu apparaît en douceur
+    setTimeout(() => {
+      farewellMsg.classList.add('show');
+    }, 2200);
+  });
+
+  // ---------- Redimensionnement ----------
+  window.addEventListener('resize', () => {
+    linesSvg.setAttribute('width', window.innerWidth);
+    linesSvg.setAttribute('height', window.innerHeight);
+  });
+
+})();
+</script>
+
+</body>
+</html>
